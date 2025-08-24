@@ -327,6 +327,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // OAuth configuration status endpoint
+  app.get("/api/oauth-config", (req, res) => {
+    const isConfigured = !!(
+      process.env.GOOGLE_CLIENT_ID && 
+      process.env.GOOGLE_CLIENT_SECRET && 
+      process.env.GOOGLE_CLIENT_ID !== 'demo_client_id'
+    );
+    res.json({ isConfigured });
+  });
+
   // People/contacts endpoints
   app.get("/api/people", async (req, res) => {
     try {

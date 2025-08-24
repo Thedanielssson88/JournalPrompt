@@ -14,8 +14,12 @@ export function DemoNotice() {
     queryKey: ['/api/user']
   });
 
-  // Don't show if user is authenticated with Google or if dismissed
-  if (user?.googleAccessToken || dismissed) {
+  const { data: oauthConfig } = useQuery({
+    queryKey: ['/api/oauth-config']
+  });
+
+  // Don't show if user is authenticated with Google, OAuth is configured, or if dismissed
+  if (user?.googleAccessToken || oauthConfig?.isConfigured || dismissed) {
     return null;
   }
 
