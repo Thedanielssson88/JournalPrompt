@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npm run:*)",
+      "Bash(node push-schema.js)",
+      "Bash(npx tsx:*)",
+      "Bash(lsof:*)",
+      "Bash(PORT=3001 npm run dev)",
+      "Bash(curl:*)",
+      "Bash(npm install:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}
