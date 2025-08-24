@@ -1,15 +1,8 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { Image } from 'lucide-react';
+import { Image, ExternalLink, Loader2 } from 'lucide-react';
 import { useQuery } from '@tanstack/react-query';
 import { useToast } from '@/hooks/use-toast';
-
-declare global {
-  interface Window {
-    gapi: any;
-    google: any;
-  }
-}
 
 interface RealGooglePhotosPickerProps {
   onSelectPhotos: (photos: any[]) => void;
@@ -17,8 +10,9 @@ interface RealGooglePhotosPickerProps {
 }
 
 export function RealGooglePhotosPicker({ onSelectPhotos, onClose }: RealGooglePhotosPickerProps) {
-  const [isLoaded, setIsLoaded] = useState(false);
-  const [pickerInited, setPickerInited] = useState(false);
+  const [sessionId, setSessionId] = useState<string | null>(null);
+  const [pickerUrl, setPickerUrl] = useState<string | null>(null);
+  const [isPolling, setIsPolling] = useState(false);
   const { toast } = useToast();
   
   // Get the current user to get their access token
@@ -27,33 +21,8 @@ export function RealGooglePhotosPicker({ onSelectPhotos, onClose }: RealGooglePh
   });
 
   const API_KEY = 'AIzaSyDsMlEViH_82upx2OxHcxOAtMEtbwyNpbo';
-  const CLIENT_ID = '736316971406-m0dk8bqvakpu4s09vmmo15uo6e2u62ma.apps.googleusercontent.com';
 
-  useEffect(() => {
-    // Load Google API
-    const loadGoogleAPI = () => {
-      if (window.gapi) {
-        window.gapi.load('auth2:picker', () => {
-          setIsLoaded(true);
-        });
-      } else {
-        // Retry after a short delay if gapi is not yet available
-        setTimeout(loadGoogleAPI, 100);
-      }
-    };
-
-    loadGoogleAPI();
-  }, []);
-
-  const openPicker = () => {
-    if (!isLoaded) {
-      toast({
-        title: "Vänta",
-        description: "Google Photos Picker laddas...",
-      });
-      return;
-    }
-
+  const createPickerSession = async () => {
     if (!user?.googleAccessToken) {
       toast({
         title: "Fel",
@@ -64,40 +33,147 @@ export function RealGooglePhotosPicker({ onSelectPhotos, onClose }: RealGooglePh
     }
 
     try {
-      // Create and render the Google Picker
-      const picker = new window.google.picker.PickerBuilder()
-        .addView(window.google.picker.ViewId.PHOTOS)
-        .addView(window.google.picker.ViewId.PHOTO_ALBUMS)
-        .addView(window.google.picker.ViewId.PHOTO_UPLOAD)
-        .setOAuthToken(user.googleAccessToken)
-        .setDeveloperKey(API_KEY)
-        .setCallback((data: any) => {
-          if (data.action === window.google.picker.Action.PICKED) {
-            const photos = data.docs.map((doc: any) => ({
-              id: doc.id,
-              name: doc.name,
-              url: doc.url,
-              thumbnails: doc.thumbnails,
-              mimeType: doc.mimeType,
-              description: doc.description,
-              isVideo: doc.mimeType?.startsWith('video/'),
-            }));
-            onSelectPhotos(photos);
-            onClose();
-          } else if (data.action === window.google.picker.Action.CANCEL) {
-            onClose();
-          }
+      // Create a new picker session using the Google Photos Picker API
+      const response = await fetch('https://photospicker.googleapis.com/v1/sessions', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${user.googleAccessToken}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          // Optional: configure picker settings here
         })
-        .setTitle('Välj foton från Google Photos')
-        .setLocale('sv')
-        .build();
+      });
 
-      picker.setVisible(true);
+      if (!response.ok) {
+        const error = await response.text();
+        console.error('Session creation failed:', error);
+        throw new Error(`Failed to create picker session: ${response.status}`);
+      }
+
+      const session = await response.json();
+      console.log('Created picker session:', session);
+      
+      setSessionId(session.id);
+      setPickerUrl(session.pickerUri);
+      
+      // Open the picker in a new window
+      if (session.pickerUri) {
+        const pickerWindow = window.open(
+          session.pickerUri,
+          'google-photos-picker',
+          'width=800,height=600,scrollbars=yes,resizable=yes'
+        );
+        
+        // Start polling for completion
+        startPolling(session.id, pickerWindow);
+        
+        toast({
+          title: "Google Photos Picker öppnad",
+          description: "Välj dina foton i det nya fönstret",
+        });
+      }
+
     } catch (error) {
-      console.error('Error opening picker:', error);
+      console.error('Picker session error:', error);
       toast({
         title: "Fel",
-        description: "Kunde inte öppna Google Photos Picker",
+        description: `Kunde inte skapa Google Photos Picker session: ${error.message}`,
+        variant: "destructive"
+      });
+    }
+  };
+
+  const startPolling = (sessionId: string, pickerWindow: Window | null) => {
+    setIsPolling(true);
+    
+    const pollInterval = setInterval(async () => {
+      try {
+        // Check if picker window is closed
+        if (pickerWindow?.closed) {
+          clearInterval(pollInterval);
+          setIsPolling(false);
+          
+          // Get the selected media items
+          await getSelectedMediaItems(sessionId);
+          return;
+        }
+
+        // Check session status
+        const response = await fetch(`https://photospicker.googleapis.com/v1/sessions/${sessionId}`, {
+          headers: {
+            'Authorization': `Bearer ${user.googleAccessToken}`,
+          }
+        });
+
+        if (response.ok) {
+          const session = await response.json();
+          console.log('Session status:', session);
+          
+          // Check if user has made selections and closed the picker
+          if (session.mediaItemsSet && pickerWindow?.closed) {
+            clearInterval(pollInterval);
+            setIsPolling(false);
+            await getSelectedMediaItems(sessionId);
+          }
+        }
+      } catch (error) {
+        console.error('Polling error:', error);
+      }
+    }, 2000); // Poll every 2 seconds
+
+    // Clean up after 5 minutes
+    setTimeout(() => {
+      clearInterval(pollInterval);
+      setIsPolling(false);
+    }, 300000);
+  };
+
+  const getSelectedMediaItems = async (sessionId: string) => {
+    try {
+      const response = await fetch(`https://photospicker.googleapis.com/v1/mediaItems?sessionId=${sessionId}`, {
+        headers: {
+          'Authorization': `Bearer ${user.googleAccessToken}`,
+        }
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        console.log('Selected media items:', data);
+        
+        if (data.mediaItems && data.mediaItems.length > 0) {
+          const photos = data.mediaItems.map((item: any) => ({
+            id: item.id,
+            name: item.filename || 'Photo',
+            url: item.baseUrl,
+            thumbnails: [{url: item.baseUrl + '=s200'}],
+            mimeType: item.mimeType,
+            description: item.description || '',
+            isVideo: item.mimeType?.startsWith('video/'),
+          }));
+          
+          onSelectPhotos(photos);
+          toast({
+            title: "Foton valda",
+            description: `${photos.length} foto${photos.length !== 1 ? 'n' : ''} har lagts till`,
+          });
+        }
+      }
+
+      // Clean up session
+      await fetch(`https://photospicker.googleapis.com/v1/sessions/${sessionId}`, {
+        method: 'DELETE',
+        headers: {
+          'Authorization': `Bearer ${user.googleAccessToken}`,
+        }
+      });
+
+      onClose();
+    } catch (error) {
+      console.error('Error getting selected media items:', error);
+      toast({
+        title: "Fel",
+        description: "Kunde inte hämta valda foton",
         variant: "destructive"
       });
     }
@@ -108,23 +184,36 @@ export function RealGooglePhotosPicker({ onSelectPhotos, onClose }: RealGooglePh
       <div className="text-center space-y-2">
         <h3 className="text-lg font-semibold">Google Photos Picker</h3>
         <p className="text-sm text-muted-foreground">
-          Öppna Google Photos för att välja foton
+          {isPolling 
+            ? "Väntar på att du väljer foton i det nya fönstret..." 
+            : "Öppna Google Photos för att välja foton"}
         </p>
       </div>
       
-      <Button 
-        onClick={openPicker}
-        size="lg"
-        className="w-full max-w-xs"
-      >
-        <Image className="h-4 w-4 mr-2" />
-        Öppna Google Photos
-      </Button>
+      {sessionId && isPolling ? (
+        <div className="text-center space-y-4">
+          <Loader2 className="h-8 w-8 animate-spin mx-auto text-blue-500" />
+          <p className="text-sm text-muted-foreground">
+            Välj foton i Google Photos-fönstret och stäng sedan fönstret
+          </p>
+        </div>
+      ) : (
+        <Button 
+          onClick={createPickerSession}
+          size="lg"
+          className="w-full max-w-xs"
+          disabled={isPolling}
+        >
+          <ExternalLink className="h-4 w-4 mr-2" />
+          Öppna Google Photos Picker
+        </Button>
+      )}
       
       <Button
         variant="outline"
         onClick={onClose}
         className="w-full max-w-xs"
+        disabled={isPolling}
       >
         Avbryt
       </Button>
