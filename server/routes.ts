@@ -338,6 +338,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.json({ isConfigured });
   });
 
+  // Configuration endpoint for client
+  app.get("/api/config", (req, res) => {
+    res.json({
+      apiKey: process.env.GOOGLE_API_KEY,
+      clientId: process.env.GOOGLE_CLIENT_ID
+    });
+  });
+
   // People/contacts endpoints
   app.get("/api/people", async (req, res) => {
     try {

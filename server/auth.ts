@@ -15,6 +15,9 @@ if (process.env.GOOGLE_CLIENT_ID &&
     clientSecret: process.env.GOOGLE_CLIENT_SECRET,
     callbackURL: process.env.GOOGLE_REDIRECT_URI!,
     scope: [
+      'https://www.googleapis.com/auth/photoslibrary.readonly',
+      'https://www.googleapis.com/auth/photoslibrary.appendonly',
+      'https://www.googleapis.com/auth/photoslibrary.sharing',
       'https://www.googleapis.com/auth/photospicker.mediaitems.readonly',
       'profile',
       'email'

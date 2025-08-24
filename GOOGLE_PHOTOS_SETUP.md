@@ -18,7 +18,10 @@ This guide will help you set up real Google Photos integration for your journal 
 1. In the Google Cloud Console, navigate to "APIs & Services" > "Library"
 2. Search for and enable these APIs:
    - **Photos Library API** (for accessing user's Google Photos)
+   - **Google Picker API** (for the photo picker interface - CRITICAL)
    - **Google+ API** (for user profile information)
+
+**Note:** The Google Picker API is essential for the photo selection interface to work. Without it, all picker requests will fail.
 
 ## Step 3: Create OAuth 2.0 Credentials
 
@@ -50,7 +53,19 @@ This guide will help you set up real Google Photos integration for your journal 
 
 5. Copy the Client ID and Client Secret
 
-## Step 4: Update Environment Variables
+## Step 4: Create an API Key
+
+1. Still in "APIs & Services" > "Credentials"
+2. Click "Create Credentials" > "API key"
+3. Copy the generated API key
+4. (Recommended) Click on the API key to restrict it:
+   - Under "Application restrictions", choose "HTTP referrers"
+   - Add your domains (e.g., `localhost:3001/*`, your production domain)
+   - Under "API restrictions", select "Restrict key" and choose:
+     - Photos Library API
+     - Google Picker API
+
+## Step 5: Update Environment Variables
 
 Update your `.env` file with the real credentials:
 
@@ -59,9 +74,10 @@ Update your `.env` file with the real credentials:
 GOOGLE_CLIENT_ID=your_actual_client_id_here
 GOOGLE_CLIENT_SECRET=your_actual_client_secret_here
 GOOGLE_REDIRECT_URI=http://localhost:3001/auth/google/callback
+GOOGLE_API_KEY=your_actual_api_key_here
 ```
 
-## Step 5: Test the Integration
+## Step 6: Test the Integration
 
 1. Restart your development server: `npm run dev`
 2. Open http://localhost:3001 in your browser
