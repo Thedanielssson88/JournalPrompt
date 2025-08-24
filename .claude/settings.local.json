@@ -10,7 +10,8 @@
       "Bash(npm install:*)",
       "Bash(pkill:*)",
       "Bash(kill:*)",
-      "Bash(GOOGLE_CLIENT_ID=\"736316971406-m0dk8bqvakpu4s09vmmo15uo6e2u62ma.apps.googleusercontent.com\" GOOGLE_CLIENT_SECRET=\"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\" GOOGLE_REDIRECT_URI=\"https://family-journal.replit.app/auth/google/callback\" PORT=3001 npm run dev)"
+      "Bash(GOOGLE_CLIENT_ID=\"736316971406-m0dk8bqvakpu4s09vmmo15uo6e2u62ma.apps.googleusercontent.com\" GOOGLE_CLIENT_SECRET=\"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\" GOOGLE_REDIRECT_URI=\"https://family-journal.replit.app/auth/google/callback\" PORT=3001 npm run dev)",
+      "Bash(PORT=3002 npm run dev)"
     ],
     "deny": [],
     "ask": []
