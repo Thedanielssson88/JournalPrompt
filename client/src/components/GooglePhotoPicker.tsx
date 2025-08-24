@@ -12,6 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Calendar, Search, Image, FolderOpen, ExternalLink, RefreshCw, CheckCircle } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
+import { RealGooglePhotosPicker } from "./RealGooglePhotosPicker";
 
 interface GooglePhoto {
   id: string;
@@ -58,6 +59,7 @@ export function GooglePhotoPicker({
   const [activeTab, setActiveTab] = useState("picker");
   const [pickerSession, setPickerSession] = useState<PickerSession | null>(null);
   const [isPolling, setIsPolling] = useState(false);
+  const [showRealPicker, setShowRealPicker] = useState(false);
   const pollingIntervalRef = useRef<NodeJS.Timeout>();
 
   // Check user authentication status
@@ -274,22 +276,40 @@ export function GooglePhotoPicker({
 
     if (!pickerSession) {
       return (
-        <div className="flex flex-col items-center justify-center h-64">
-          <Button 
-            onClick={() => createSessionMutation.mutate()}
-            disabled={createSessionMutation.isPending}
-            size="lg"
-          >
-            {createSessionMutation.isPending ? (
-              <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
-            ) : (
-              <Image className="h-4 w-4 mr-2" />
-            )}
-            Bläddra i Google Photos
-          </Button>
-          <p className="text-sm text-muted-foreground mt-2 text-center">
-            Välj foton från ditt Google Photos-bibliotek
-          </p>
+        <div className="flex flex-col items-center justify-center h-64 space-y-4">
+          <div className="space-y-2 text-center">
+            <h3 className="text-lg font-semibold">Välj hur du vill välja foton</h3>
+            <p className="text-sm text-muted-foreground">
+              Använd Google Photos Picker eller bläddra i biblioteket
+            </p>
+          </div>
+          
+          <div className="flex flex-col gap-3 w-full max-w-xs">
+            <Button 
+              onClick={() => setShowRealPicker(true)}
+              size="lg"
+              className="w-full"
+              variant="default"
+            >
+              <ExternalLink className="h-4 w-4 mr-2" />
+              Öppna Google Photos Picker
+            </Button>
+            
+            <Button 
+              onClick={() => createSessionMutation.mutate()}
+              disabled={createSessionMutation.isPending}
+              size="lg"
+              className="w-full"
+              variant="outline"
+            >
+              {createSessionMutation.isPending ? (
+                <RefreshCw className="h-4 w-4 mr-2 animate-spin" />
+              ) : (
+                <Image className="h-4 w-4 mr-2" />
+              )}
+              Bläddra i biblioteket
+            </Button>
+          </div>
         </div>
       );
     }
@@ -397,6 +417,29 @@ export function GooglePhotoPicker({
       </div>
     );
   };
+
+  // Show the real Google Picker if requested
+  if (showRealPicker) {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Google Photos Picker</DialogTitle>
+          </DialogHeader>
+          <RealGooglePhotosPicker
+            onSelectPhotos={(photos) => {
+              onSelectPhotos(photos);
+              setShowRealPicker(false);
+              onOpenChange(false);
+            }}
+            onClose={() => {
+              setShowRealPicker(false);
+            }}
+          />
+        </DialogContent>
+      </Dialog>
+    );
+  }
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>

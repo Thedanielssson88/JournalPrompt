@@ -101,9 +101,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get all journal entries for current user
-  app.get("/api/journal-entries", async (req, res) => {
+  app.get("/api/journal-entries", async (req: any, res) => {
     try {
-      const entries = await storage.getJournalEntries("default-user");
+      const userId = req.isAuthenticated() && req.user ? req.user.id : "default-user";
+      const entries = await storage.getJournalEntries(userId);
       res.json(entries);
     } catch (error) {
       res.status(500).json({ message: "Failed to fetch journal entries" });
@@ -124,9 +125,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create new journal entry with enhanced features
-  app.post("/api/journal-entries", async (req, res) => {
+  app.post("/api/journal-entries", async (req: any, res) => {
     try {
       const validatedData = insertJournalEntrySchema.parse(req.body);
+      const userId = req.isAuthenticated() && req.user ? req.user.id : "default-user";
       
       // Parse photos if provided
       let photos = undefined;
@@ -136,7 +138,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       
       const entry = await storage.createJournalEntry({
         ...validatedData,
-        userId: "default-user",
+        userId: userId,
         photos
       });
       
@@ -151,7 +153,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Update journal entry
-  app.put("/api/journal-entries/:id", async (req, res) => {
+  app.put("/api/journal-entries/:id", async (req: any, res) => {
     try {
       const validatedData = insertJournalEntrySchema.partial().parse(req.body);
       
