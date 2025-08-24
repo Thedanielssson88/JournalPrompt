@@ -55,9 +55,10 @@ export function AuthButton() {
   const handleGoogleLogin = async () => {
     try {
       // First check if OAuth is configured
-      const response = await fetch('/auth/google');
-      if (!response.ok) {
-        const error = await response.json();
+      const response = await fetch('/api/oauth-config');
+      const config = await response.json();
+      
+      if (!config.isConfigured) {
         toast({
           title: "Google OAuth inte konfigurerat",
           description: "Se GOOGLE_PHOTOS_SETUP.md för instruktioner om hur du ställer in Google Photos integration.",
@@ -66,8 +67,22 @@ export function AuthButton() {
         return;
       }
       
-      // Redirect to Google OAuth
-      window.location.href = '/auth/google';
+      // Check if we're in an iframe (Replit preview or similar)
+      const isInIframe = window.self !== window.top;
+      
+      if (isInIframe) {
+        // Open in a new window to avoid iframe restrictions
+        const authUrl = `${window.location.origin}/auth/google`;
+        window.open(authUrl, '_blank');
+        
+        toast({
+          title: "Öppnar Google-inloggning",
+          description: "Inloggningen öppnas i ett nytt fönster. Tillåt popup-fönster om webbläsaren blockerar.",
+        });
+      } else {
+        // Normal redirect if not in iframe
+        window.location.href = '/auth/google';
+      }
     } catch (error) {
       toast({
         title: "Fel",

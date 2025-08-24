@@ -1,4 +1,4 @@
-import './env'; // Load environment variables first
+import './env'; // Load environment variables first - updated for production
 
 import express, { type Request, Response, NextFunction } from "express";
 import session from "express-session";
