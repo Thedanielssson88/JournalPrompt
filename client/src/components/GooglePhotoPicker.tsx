@@ -77,13 +77,17 @@ export function GooglePhotoPicker({
       return res.json();
     },
     onSuccess: (session) => {
+      // Since the real Picker API requires additional setup,
+      // we'll use our own UI to browse photos
       setPickerSession(session);
-      startPolling(session.id);
+      setActiveTab('suggestions'); // Switch to suggestions tab
+      // Load recent photos immediately
+      fetchSuggestions();
     },
     onError: (error) => {
       toast({
         title: "Fel",
-        description: "Kunde inte skapa Google Photos session",
+        description: "Kunde inte komma åt Google Photos. Kontrollera att du är inloggad.",
         variant: "destructive"
       });
     }
@@ -281,10 +285,10 @@ export function GooglePhotoPicker({
             ) : (
               <Image className="h-4 w-4 mr-2" />
             )}
-            Öppna Google Photos Picker
+            Bläddra i Google Photos
           </Button>
           <p className="text-sm text-muted-foreground mt-2 text-center">
-            Välj foton direkt från din Google Photos-app
+            Välj foton från ditt Google Photos-bibliotek
           </p>
         </div>
       );

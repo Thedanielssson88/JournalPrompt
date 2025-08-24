@@ -213,15 +213,17 @@ class RealGooglePhotosService {
     }
   }
 
-  // Mock Picker API functionality (Google Photos Picker API is separate)
+  // Simplified picker session (Google Photos Picker API requires additional setup)
   async createPickerSession(): Promise<PickerSession> {
-    // This is a simplified mock - real Picker API requires separate setup
-    const sessionId = 'real-session-' + Date.now();
+    // Generate a session ID for tracking
+    const sessionId = 'session-' + Date.now();
     
+    // For now, return a session that allows browsing photos through our own UI
+    // The real Picker API would open Google's picker interface
     return {
       id: sessionId,
-      pickerUri: `https://photos.google.com/picker/${sessionId}`, // This would be the real picker URL
-      mediaItemsSet: false,
+      pickerUri: '', // Empty since we're using our own UI
+      mediaItemsSet: true, // Mark as ready immediately
       pollingConfig: {
         timeoutMs: 120000,
         intervalMs: 1000
