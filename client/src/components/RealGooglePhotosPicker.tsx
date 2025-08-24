@@ -41,12 +41,7 @@ export function RealGooglePhotosPicker({ onSelectPhotos, onClose }: RealGooglePh
           'Content-Type': 'application/json',
           'X-Goog-Api-Key': API_KEY,
         },
-        body: JSON.stringify({
-          pickerConfig: {
-            supportedMediaTypes: ['PHOTO', 'VIDEO'],
-            maxSelection: 50
-          }
-        })
+        body: JSON.stringify({})
       });
 
       if (!response.ok) {
