@@ -70,16 +70,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     passport.authenticate('google')(req, res);
   });
   
-  app.get('/auth/google/callback', (req, res) => {
-    if (!isGoogleOAuthConfigured) {
-      return res.redirect('/?error=oauth_not_configured');
-    }
-    
-    passport.authenticate('google', { failureRedirect: '/?error=login_failed' })(req, res, () => {
-      // Successful authentication, redirect to main app
-      res.redirect('/');
-    });
-  });
+  app.get('/auth/google/callback', 
+    passport.authenticate('google', { 
+      failureRedirect: '/?error=login_failed',
+      successRedirect: '/',
+      session: true 
+    })
+  );
   
   app.post('/auth/logout', (req, res) => {
     req.logout(() => {
@@ -89,8 +86,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Get current user
   app.get("/api/user", async (req: any, res) => {
-    if (req.isAuthenticated()) {
-      res.json(req.user);
+    console.log('User endpoint - authenticated:', req.isAuthenticated(), 'user:', req.user?.username);
+    
+    if (req.isAuthenticated() && req.user) {
+      res.json({ ...req.user, isAuthenticated: true });
     } else {
       // For demo purposes, still return default user if not authenticated
       const user = await storage.getUser("default-user");
