@@ -39,9 +39,13 @@ export function RealGooglePhotosPicker({ onSelectPhotos, onClose }: RealGooglePh
         headers: {
           'Authorization': `Bearer ${user.googleAccessToken}`,
           'Content-Type': 'application/json',
+          'X-Goog-Api-Key': API_KEY,
         },
         body: JSON.stringify({
-          // Optional: configure picker settings here
+          pickerConfig: {
+            supportedMediaTypes: ['PHOTO', 'VIDEO'],
+            maxSelection: 50
+          }
         })
       });
 
@@ -116,6 +120,7 @@ export function RealGooglePhotosPicker({ onSelectPhotos, onClose }: RealGooglePh
         const response = await fetch(`https://photospicker.googleapis.com/v1/sessions/${sessionId}`, {
           headers: {
             'Authorization': `Bearer ${user.googleAccessToken}`,
+            'X-Goog-Api-Key': API_KEY,
           }
         });
 
@@ -144,18 +149,22 @@ export function RealGooglePhotosPicker({ onSelectPhotos, onClose }: RealGooglePh
 
   const getSelectedMediaItems = async (sessionId: string) => {
     try {
-      const response = await fetch(`https://photospicker.googleapis.com/v1/mediaItems?sessionId=${sessionId}`, {
+      const response = await fetch(`https://photospicker.googleapis.com/v1/sessions/${sessionId}:batchGet`, {
+        method: 'POST',
         headers: {
           'Authorization': `Bearer ${user.googleAccessToken}`,
-        }
+          'Content-Type': 'application/json',
+          'X-Goog-Api-Key': API_KEY,
+        },
+        body: JSON.stringify({})
       });
 
       if (response.ok) {
         const data = await response.json();
         console.log('Selected media items:', data);
         
-        if (data.mediaItems && data.mediaItems.length > 0) {
-          const photos = data.mediaItems.map((item: any) => ({
+        if (data.pickedMediaItems && data.pickedMediaItems.length > 0) {
+          const photos = data.pickedMediaItems.map((item: any) => ({
             id: item.id,
             name: item.filename || 'Photo',
             url: item.baseUrl,
@@ -178,6 +187,7 @@ export function RealGooglePhotosPicker({ onSelectPhotos, onClose }: RealGooglePh
         method: 'DELETE',
         headers: {
           'Authorization': `Bearer ${user.googleAccessToken}`,
+          'X-Goog-Api-Key': API_KEY,
         }
       });
 
