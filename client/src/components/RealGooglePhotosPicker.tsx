@@ -47,8 +47,21 @@ export function RealGooglePhotosPicker({ onSelectPhotos, onClose }: RealGooglePh
 
       if (!response.ok) {
         const error = await response.text();
-        console.error('Session creation failed:', error);
-        throw new Error(`Failed to create picker session: ${response.status}`);
+        console.error('Session creation failed:', response.status, error);
+        console.error('Request headers:', {
+          'Authorization': `Bearer ${user.googleAccessToken?.substring(0, 20)}...`,
+          'Content-Type': 'application/json',
+        });
+        
+        let errorMessage = `HTTP ${response.status}`;
+        try {
+          const errorJson = JSON.parse(error);
+          errorMessage = errorJson.error?.message || errorJson.message || errorMessage;
+        } catch (e) {
+          errorMessage = error || errorMessage;
+        }
+        
+        throw new Error(`Failed to create picker session: ${errorMessage}`);
       }
 
       const session = await response.json();
